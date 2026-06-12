@@ -1,0 +1,1211 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>English с Гришей</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  :root {
+    --bg: #1a0a10; --surface: #2a1018; --surface2: #361520;
+    --border: #4a2030; --accent: #ff4d8f; --accent2: #ff8ab8;
+    --accent3: #ffb3d1; --text: #ffe8f0; --muted: #b07090;
+    --success: #4cff91; --warning: #ffcc00;
+  }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg); color: var(--text);
+    min-height: 100vh; overflow-x: hidden;
+  }
+
+  /* NAV */
+  .bottom-nav {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: var(--surface); border-top: 1px solid var(--border);
+    display: flex; z-index: 100;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .nav-btn {
+    flex: 1; padding: 10px 4px 8px;
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    cursor: pointer; border: none; background: none; color: var(--muted);
+    font-size: 10px; font-weight: 600; transition: color 0.15s;
+  }
+  .nav-btn.active { color: var(--accent); }
+  .nav-btn span { font-size: 20px; }
+
+  /* PAGES */
+  .page { display: none; padding: 16px 16px 80px; }
+  .page.active { display: block; }
+  .page-title { font-size: 20px; font-weight: 800; margin-bottom: 4px; }
+  .page-sub { color: var(--muted); font-size: 13px; margin-bottom: 18px; }
+
+  /* CARDS */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px; margin-bottom: 12px; }
+  .card-title { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
+
+  /* LESSON HEADER */
+  .lesson-hero {
+    background: linear-gradient(135deg, #1e1830, #16202e);
+    border: 1px solid var(--border); border-radius: 16px;
+    padding: 18px; margin-bottom: 12px;
+  }
+  .lesson-tag { display: inline-block; background: rgba(124,111,255,0.2); color: var(--accent); font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; margin-bottom: 8px; }
+  .lesson-title { font-size: 18px; font-weight: 800; margin-bottom: 5px; }
+  .lesson-meta { font-size: 12px; color: var(--muted); }
+
+  /* STEPS */
+  .steps { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .step-dot { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.15s; }
+  .step-dot.done { background: var(--success); color: #000; }
+  .step-dot.active { background: var(--accent); color: white; box-shadow: 0 0 12px rgba(124,111,255,0.4); }
+  .step-dot.pending { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
+
+  /* VOCAB */
+  .vocab-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .vocab-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 12px; cursor: pointer; transition: all 0.15s; }
+  .vocab-card.flipped { border-color: var(--accent3); }
+  .vocab-en { font-size: 14px; font-weight: 700; margin-bottom: 3px; }
+  .vocab-tr { font-size: 11px; color: var(--muted); }
+  .vocab-ru { font-size: 12px; color: var(--accent3); margin-top: 4px; filter: blur(5px); transition: filter 0.2s; }
+  .vocab-card.flipped .vocab-ru { filter: none; }
+
+  /* DIALOGUE */
+  .dialogue { display: flex; flex-direction: column; gap: 10px; }
+  .msg { display: flex; gap: 8px; align-items: flex-start; }
+  .msg.right { flex-direction: row-reverse; }
+  .msg-av { width: 30px; height: 30px; border-radius: 50%; background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+  .msg-bubble { max-width: 78%; padding: 9px 12px; border-radius: 12px; font-size: 13px; line-height: 1.5; }
+  .msg.left .msg-bubble { background: var(--surface2); border-bottom-left-radius: 3px; }
+  .msg.right .msg-bubble { background: rgba(124,111,255,0.18); border: 1px solid rgba(124,111,255,0.25); border-bottom-right-radius: 3px; }
+  .msg-tr { font-size: 11px; color: var(--muted); margin-top: 3px; font-style: italic; }
+
+  /* EXERCISE */
+  .ex-q { font-size: 15px; font-weight: 700; margin-bottom: 14px; line-height: 1.4; }
+  .ex-ctx { font-size: 12px; color: var(--muted); padding: 8px 12px; background: var(--surface2); border-radius: 8px; border-left: 3px solid var(--accent); margin-bottom: 14px; }
+  .ex-opts { display: flex; flex-direction: column; gap: 8px; }
+  .ex-opt { padding: 11px 14px; border-radius: 10px; border: 1px solid var(--border); cursor: pointer; font-size: 13px; background: var(--surface2); text-align: left; transition: all 0.15s; }
+  .ex-opt:active:not(.disabled) { transform: scale(0.98); }
+  .ex-opt.correct { border-color: var(--success); background: rgba(76,255,145,0.1); color: var(--success); }
+  .ex-opt.wrong { border-color: var(--accent2); background: rgba(255,107,157,0.1); color: var(--accent2); }
+  .ex-opt.disabled { cursor: default; }
+  .ex-fb { margin-top: 12px; padding: 10px 14px; border-radius: 10px; font-size: 13px; line-height: 1.5; display: none; }
+  .ex-fb.show { display: block; }
+  .ex-fb.ok { background: rgba(76,255,145,0.08); border: 1px solid rgba(76,255,145,0.2); }
+  .ex-fb.bad { background: rgba(255,107,157,0.08); border: 1px solid rgba(255,107,157,0.2); }
+
+  /* BTN */
+  .btn { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 13px 18px; border-radius: 12px; font-size: 14px; font-weight: 700; cursor: pointer; border: none; transition: all 0.15s; width: 100%; margin-top: 12px; }
+  .btn-primary { background: var(--accent); color: white; }
+  .btn-primary:active { transform: scale(0.97); }
+
+  /* PROGRESS */
+  .progress-bar { height: 5px; background: var(--surface2); border-radius: 3px; overflow: hidden; margin: 6px 0; }
+  .progress-fill { height: 100%; border-radius: 3px; background: var(--accent); transition: width 0.4s; }
+
+  /* STATS */
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px; text-align: center; }
+  .stat-num { font-size: 26px; font-weight: 800; }
+  .stat-label { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+  /* MODULE */
+  .module-item { display: flex; align-items: center; gap: 12px; padding: 12px; border: 1px solid var(--border); border-radius: 12px; margin-bottom: 8px; }
+  .module-item.active-m { border-color: var(--accent); background: rgba(124,111,255,0.05); }
+  .module-item.locked { opacity: 0.4; }
+  .mod-icon { font-size: 24px; }
+  .mod-info { flex: 1; }
+  .mod-name { font-size: 14px; font-weight: 700; }
+  .mod-desc { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .mod-badge { font-size: 10px; padding: 3px 8px; border-radius: 20px; font-weight: 700; }
+  .badge-a { background: rgba(124,111,255,0.2); color: var(--accent); }
+  .badge-l { background: var(--surface2); color: var(--muted); }
+
+  /* HW */
+  .hw-box { background: linear-gradient(135deg, rgba(107,255,216,0.07), rgba(124,111,255,0.04)); border: 1px solid rgba(107,255,216,0.2); border-radius: 14px; padding: 16px; }
+  .hw-title { font-size: 12px; font-weight: 700; color: var(--accent3); margin-bottom: 8px; }
+  .hw-text { font-size: 13px; line-height: 1.6; }
+
+  /* STREAK */
+  .streak-banner { background: linear-gradient(135deg, rgba(255,204,0,0.12), rgba(255,107,157,0.08)); border: 1px solid rgba(255,204,0,0.25); border-radius: 14px; padding: 14px 16px; margin-bottom: 12px; display: flex; align-items: center; gap: 12px; }
+  .streak-num { font-size: 32px; font-weight: 900; color: var(--warning); }
+  .streak-info { }
+  .streak-label { font-size: 13px; font-weight: 700; }
+  .streak-sub { font-size: 11px; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<!-- PAGES -->
+
+<!-- TODAY -->
+<div class="page active" id="page-today">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+    <div>
+      <div class="page-title">Урок сегодня</div>
+      <div class="page-sub" style="margin-bottom:0">Модуль 2 — Аэропорт</div>
+    </div>
+    <div style="font-size:24px">✈️</div>
+  </div>
+
+  <div class="streak-banner">
+    <div class="streak-num" id="streakNum">1</div>
+    <div class="streak-info">
+      <div class="streak-label">🔥 день подряд</div>
+      <div class="streak-sub">Продолжай в том же духе!</div>
+    </div>
+  </div>
+
+  <div class="lesson-hero" id="lessonHeader">
+    <div class="lesson-tag">Модуль 2 • Урок 1</div>
+    <div class="lesson-title">✈️ Аэропорт: Check-in</div>
+    <div class="lesson-meta">Регистрация на рейс — что говорить на стойке</div>
+  </div>
+
+  <div class="steps" id="steps">
+    <div class="step-dot active" onclick="goStep(0)">1</div>
+    <div class="step-dot pending" onclick="goStep(1)">2</div>
+    <div class="step-dot pending" onclick="goStep(2)">3</div>
+    <div class="step-dot pending" onclick="goStep(3)">4</div>
+    <div class="step-dot pending" onclick="goStep(4)">5</div>
+  </div>
+
+  <div id="step-content"></div>
+</div>
+
+<!-- MODULES -->
+<div class="page" id="page-modules">
+  <div class="page-title">Программа</div>
+  <div class="page-sub">11 модулей • ~6 месяцев</div>
+
+  <div class="module-item active-m">
+    <div class="mod-icon">✈️</div>
+    <div class="mod-info">
+      <div class="mod-name">Модуль 2 — Аэропорт</div>
+      <div class="mod-desc">Check-in, паспортный контроль, посадка</div>
+      <div class="progress-bar" style="margin-top:6px"><div class="progress-fill" style="width:5%"></div></div>
+    </div>
+    <div class="mod-badge badge-a">Текущий</div>
+  </div>
+  <div class="module-item locked">
+    <div class="mod-icon">🏨</div>
+    <div class="mod-info">
+      <div class="mod-name">Модуль 3 — Отель</div>
+      <div class="mod-desc">Заселение, просьбы, проблемы</div>
+    </div>
+    <div class="mod-badge badge-l">🔒</div>
+  </div>
+  <div class="module-item locked">
+    <div class="mod-icon">🍕</div>
+    <div class="mod-info">
+      <div class="mod-name">Модуль 4 — Еда</div>
+      <div class="mod-desc">Кафе, ресторан, заказ</div>
+    </div>
+    <div class="mod-badge badge-l">🔒</div>
+  </div>
+  <div class="module-item locked">
+    <div class="mod-icon">💳</div>
+    <div class="mod-info">
+      <div class="mod-name">Модуль 5 — Покупки</div>
+      <div class="mod-desc">Магазины, деньги, скидки</div>
+    </div>
+    <div class="mod-badge badge-l">🔒</div>
+  </div>
+  <div class="module-item locked">
+    <div class="mod-icon">🏥</div>
+    <div class="mod-info">
+      <div class="mod-name">Модуль 6 — Здоровье</div>
+      <div class="mod-desc">Аптека, врач, экстренное</div>
+    </div>
+    <div class="mod-badge badge-l">🔒</div>
+  </div>
+  <div class="module-item locked">
+    <div class="mod-icon">💬</div>
+    <div class="mod-info">
+      <div class="mod-name">Модуль 7 — Общение</div>
+      <div class="mod-desc">Small talk, знакомства</div>
+    </div>
+    <div class="mod-badge badge-l">🔒</div>
+  </div>
+  <div class="module-item locked">
+    <div class="mod-icon">✈️</div>
+    <div class="mod-info">
+      <div class="mod-name">Модуль 8 — Путешествия</div>
+      <div class="mod-desc">Экскурсии, навигация, транспорт</div>
+    </div>
+    <div class="mod-badge badge-l">🔒</div>
+  </div>
+  <div class="module-item locked">
+    <div class="mod-icon">🍷</div>
+    <div class="mod-info">
+      <div class="mod-name">Модуль 9 — Рестораны</div>
+      <div class="mod-desc">Брони, жалобы, вино, особые пожелания</div>
+    </div>
+    <div class="mod-badge badge-l">🔒</div>
+  </div>
+  <div class="module-item locked">
+    <div class="mod-icon">🛒</div>
+    <div class="mod-info">
+      <div class="mod-name">Модуль 10 — Магазины</div>
+      <div class="mod-desc">Рынок, торг, онлайн-покупки</div>
+    </div>
+    <div class="mod-badge badge-l">🔒</div>
+  </div>
+  <div class="module-item locked">
+    <div class="mod-icon">🤝</div>
+    <div class="mod-info">
+      <div class="mod-name">Модуль 11 — Знакомства</div>
+      <div class="mod-desc">Глубокий разговор, дружба, свидания</div>
+    </div>
+    <div class="mod-badge badge-l">🔒</div>
+  </div>
+</div>
+
+<!-- VOCAB -->
+<div class="page" id="page-vocab">
+  <div class="page-title">Словарь</div>
+  <div class="page-sub">Нажми — увидишь перевод</div>
+  <div class="vocab-grid" id="vocabGrid"></div>
+</div>
+
+<!-- STATS -->
+<div class="page" id="page-stats">
+  <div class="page-title">Прогресс</div>
+  <div class="page-sub">Твоя статистика</div>
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-num" style="color:var(--accent)" id="statDays">1</div><div class="stat-label">🔥 дней подряд</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--accent3)" id="statWords">0</div><div class="stat-label">слов знаю</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--warning)">A2</div><div class="stat-label">мой уровень</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--success)" id="statLessons">0</div><div class="stat-label">уроков пройдено</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Цели</div>
+    <div style="display:flex;flex-direction:column;gap:8px;font-size:13px">
+      <div style="padding:9px 12px;background:var(--surface2);border-radius:8px">⏳ 1 месяц — пройти аэропорт без паники</div>
+      <div style="padding:9px 12px;background:var(--surface2);border-radius:8px">⏳ 2 месяца — заказать еду и взять такси</div>
+      <div style="padding:9px 12px;background:var(--surface2);border-radius:8px">⏳ 3 месяца — поговорить с местным</div>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav">
+  <button class="nav-btn active" onclick="showPage('today')"><span>📅</span>Урок</button>
+  <button class="nav-btn" onclick="showPage('modules')"><span>📚</span>Модули</button>
+  <button class="nav-btn" onclick="showPage('vocab')"><span>🗂️</span>Словарь</button>
+  <button class="nav-btn" onclick="showPage('stats')"><span>📊</span>Прогресс</button>
+</div>
+
+<script>
+// Telegram init
+if (window.Telegram?.WebApp) {
+  Telegram.WebApp.ready();
+  Telegram.WebApp.expand();
+  const tg = Telegram.WebApp;
+  if (tg.colorScheme === 'light') {
+    document.documentElement.style.setProperty('--bg', '#f5f5f7');
+    document.documentElement.style.setProperty('--surface', '#ffffff');
+    document.documentElement.style.setProperty('--surface2', '#f0f0f5');
+    document.documentElement.style.setProperty('--text', '#1a1a2e');
+    document.documentElement.style.setProperty('--muted', '#888899');
+    document.documentElement.style.setProperty('--border', '#e0e0ea');
+  }
+}
+
+// VOCAB
+const vocab = [
+  { en: "Check-in", ru: "Регистрация на рейс", tr: "[чек-ин]" },
+  { en: "Boarding pass", ru: "Посадочный талон", tr: "[бординг пас]" },
+  { en: "Passport control", ru: "Паспортный контроль", tr: "[паспорт контрол]" },
+  { en: "Gate", ru: "Выход на посадку", tr: "[гейт]" },
+  { en: "Departure", ru: "Вылет", tr: "[дипарча]" },
+  { en: "Arrival", ru: "Прилёт", tr: "[эрайвл]" },
+  { en: "Baggage claim", ru: "Получение багажа", tr: "[бэгидж клейм]" },
+  { en: "Window seat", ru: "Место у окна", tr: "[виндоу сит]" },
+  { en: "Aisle seat", ru: "Место у прохода", tr: "[айл сит]" },
+  { en: "Carry-on", ru: "Ручная кладь", tr: "[кэри-он]" },
+  { en: "Delayed", ru: "Задержан", tr: "[дилейд]" },
+  { en: "Cancelled", ru: "Отменён", tr: "[кэнселд]" },
+  { en: "Terminal", ru: "Терминал", tr: "[терминал]" },
+  { en: "Security check", ru: "Досмотр", tr: "[секьюрити чек]" },
+];
+
+// ===================== LESSONS =====================
+
+const lessons = [
+  {
+    id: 0,
+    title: "✈️ Check-in",
+    meta: "Регистрация на рейс — что говорить на стойке",
+    module: "Модуль 2 • Урок 1",
+    hw: `"I'd like to check in. Here is my passport. Can I have a window seat, please?"`,
+    vocab: vocab,
+    phrases: [
+      ["I'd like to check in.", "Я хочу зарегистрироваться."],
+      ["I have one bag to check.", "У меня один чемодан в багаж."],
+      ["Can I have a window seat?", "Можно место у окна?"],
+      ["Here is my passport.", "Вот мой паспорт."],
+      ["What gate is it?", "Какой выход?"],
+      ["Is the flight on time?", "Рейс вовремя?"],
+    ],
+    dialogue: [
+      { side: "left", av: "👩‍✈️", en: "Good morning! Passport and booking, please.", ru: "Доброе утро! Паспорт и бронь, пожалуйста." },
+      { side: "right", av: "🙋‍♀️", en: "Good morning! Here is my passport.", ru: "Доброе утро! Вот мой паспорт." },
+      { side: "left", av: "👩‍✈️", en: "How many bags are you checking in?", ru: "Сколько чемоданов сдаёте?" },
+      { side: "right", av: "🙋‍♀️", en: "I have one bag to check. Can I have a window seat?", ru: "Один чемодан. Можно место у окна?" },
+      { side: "left", av: "👩‍✈️", en: "Of course! Row 14, seat A. Your boarding pass. Gate 7B.", ru: "Конечно! Ряд 14, место A. Ваш посадочный талон. Выход 7B." },
+      { side: "right", av: "🙋‍♀️", en: "Thank you! Is the flight on time?", ru: "Спасибо! Рейс вовремя?" },
+      { side: "left", av: "👩‍✈️", en: "Yes, on time. Have a good flight!", ru: "Да, вовремя. Хорошего полёта!" },
+    ],
+    quiz: [
+      { q: "Как сказать «Я хочу зарегистрироваться»?", opts: ["I'd like to check in.", "I want airport go.", "Check in me please.", "I am here flight."], correct: 0, explain: "«I'd like to check in» — вежливая стандартная фраза." },
+      { q: "Что значит «Your flight is delayed»?", opts: ["Рейс отменён", "Рейс задержан", "Рейс вовремя", "Рейс перенесён"], correct: 1, explain: "Delayed = задержан. Cancelled = отменён. Важно не путать!" },
+      { q: "Как попросить место у окна?", opts: ["Can I have a window seat?", "I want window.", "Give me window please.", "Window seat is me."], correct: 0, explain: "«Can I have...» — универсальная формула просьбы для всего." },
+    ]
+  },
+  {
+    id: 1,
+    title: "🛂 Паспортный контроль",
+    meta: "Что говорить офицеру на паспортном контроле",
+    module: "Модуль 2 • Урок 2",
+    hw: `"I'm here for tourism. I'll stay for 7 days. I'm staying at a hotel."`,
+    vocab: [
+      { en: "Purpose of visit", ru: "Цель визита", tr: "[пёрпос оф визит]" },
+      { en: "Tourism", ru: "Туризм", tr: "[туризм]" },
+      { en: "Business", ru: "Бизнес/дела", tr: "[бизнес]" },
+      { en: "Duration of stay", ru: "Срок пребывания", tr: "[дюрейшн оф стэй]" },
+      { en: "I'll stay for...", ru: "Я пробуду...", tr: "[айл стэй фо]" },
+      { en: "Return ticket", ru: "Обратный билет", tr: "[ритёрн тикет]" },
+      { en: "Nothing to declare", ru: "Нечего декларировать", tr: "[насинг ту деклэр]" },
+      { en: "Stamp", ru: "Штамп/печать", tr: "[стэмп]" },
+      { en: "Visa", ru: "Виза", tr: "[виза]" },
+      { en: "Customs", ru: "Таможня", tr: "[кастомз]" },
+    ],
+    phrases: [
+      ["I'm here for tourism.", "Я здесь ради туризма."],
+      ["I'll stay for 7 days.", "Я пробуду 7 дней."],
+      ["I'm staying at a hotel.", "Я остановлюсь в отеле."],
+      ["Here is my return ticket.", "Вот мой обратный билет."],
+      ["I have nothing to declare.", "Мне нечего декларировать."],
+      ["Can you repeat that, please?", "Не могли бы вы повторить?"],
+    ],
+    dialogue: [
+      { side: "left", av: "👮", en: "Passport, please.", ru: "Паспорт, пожалуйста." },
+      { side: "right", av: "🙋‍♀️", en: "Here you go.", ru: "Вот, пожалуйста." },
+      { side: "left", av: "👮", en: "What is the purpose of your visit?", ru: "Какова цель вашего визита?" },
+      { side: "right", av: "🙋‍♀️", en: "I'm here for tourism.", ru: "Я здесь ради туризма." },
+      { side: "left", av: "👮", en: "How long will you stay?", ru: "Как долго вы пробудете?" },
+      { side: "right", av: "🙋‍♀️", en: "I'll stay for 7 days. Here is my return ticket.", ru: "Я пробуду 7 дней. Вот мой обратный билет." },
+      { side: "left", av: "👮", en: "Where are you staying?", ru: "Где вы остановитесь?" },
+      { side: "right", av: "🙋‍♀️", en: "I'm staying at a hotel in the city centre.", ru: "В отеле в центре города." },
+      { side: "left", av: "👮", en: "Enjoy your stay!", ru: "Приятного пребывания!" },
+    ],
+    quiz: [
+      { q: "Офицер спрашивает «Purpose of your visit?». Что отвечаешь?", opts: ["I'm here for tourism.", "I want travel.", "My visit is good.", "Tourism me here."], correct: 0, explain: "«I'm here for tourism» — коротко и понятно. Или «I'm here for business» если по работе." },
+      { q: "Как сказать «Я пробуду 10 дней»?", opts: ["I'll stay for 10 days.", "I am 10 days here.", "Stay me 10 days.", "I stay 10 day."], correct: 0, explain: "«I'll stay for...» — стандартная формула. «I'll» = «I will» (сокращение)." },
+      { q: "Что значит «Do you have anything to declare?»", opts: ["У вас есть обратный билет?", "Что вы везёте декларировать?", "Вам есть что задекларировать?", "Вы здесь впервые?"], correct: 2, explain: "Это вопрос таможни — есть ли запрещённые или дорогие товары. Обычный ответ: «No, I have nothing to declare»." },
+    ]
+  },
+  {
+    id: 2,
+    title: "🚕 Такси и транспорт",
+    meta: "Как добраться от аэропорта до отеля",
+    module: "Модуль 2 • Урок 3",
+    hw: `"Can you take me to this address, please? How much will it cost?"`,
+    vocab: [
+      { en: "Taxi / Cab", ru: "Такси", tr: "[тэкси / кэб]" },
+      { en: "Address", ru: "Адрес", tr: "[эдрес]" },
+      { en: "How much?", ru: "Сколько стоит?", tr: "[хау мач]" },
+      { en: "Meter", ru: "Счётчик", tr: "[митэ]" },
+      { en: "Receipt", ru: "Чек/квитанция", tr: "[рисит]" },
+      { en: "Straight ahead", ru: "Прямо", tr: "[стрэйт эхед]" },
+      { en: "Turn left/right", ru: "Поверните налево/направо", tr: "[тёрн лефт/райт]" },
+      { en: "Stop here", ru: "Остановите здесь", tr: "[стоп хиа]" },
+      { en: "In a hurry", ru: "Тороплюсь", tr: "[ин э хёри]" },
+      { en: "Change", ru: "Сдача", tr: "[чейндж]" },
+    ],
+    phrases: [
+      ["Can you take me to this address?", "Вы можете отвезти меня по этому адресу?"],
+      ["How much will it cost?", "Сколько это будет стоить?"],
+      ["I'm not in a hurry.", "Я не тороплюсь."],
+      ["Stop here, please.", "Остановите здесь, пожалуйста."],
+      ["Can I have a receipt?", "Можно квитанцию?"],
+      ["Keep the change.", "Сдачи не нужно."],
+    ],
+    dialogue: [
+      { side: "right", av: "🙋‍♀️", en: "Hi! Can you take me to this address, please?", ru: "Привет! Отвезёте меня по этому адресу?" },
+      { side: "left", av: "🚕", en: "Sure! Is this your first time here?", ru: "Конечно! Вы впервые здесь?" },
+      { side: "right", av: "🙋‍♀️", en: "Yes, first time. How much will it cost?", ru: "Да, впервые. Сколько это будет стоить?" },
+      { side: "left", av: "🚕", en: "About 15 euros. I'll use the meter.", ru: "Около 15 евро. Я включу счётчик." },
+      { side: "right", av: "🙋‍♀️", en: "OK, no problem. I'm not in a hurry.", ru: "Хорошо, не спешу." },
+      { side: "left", av: "🚕", en: "Here we are! That's 14 euros.", ru: "Приехали! С вас 14 евро." },
+      { side: "right", av: "🙋‍♀️", en: "Here's 15. Keep the change. Can I have a receipt?", ru: "Вот 15. Сдачи не нужно. Можно чек?" },
+    ],
+    quiz: [
+      { q: "Как спросить сколько стоит поездка?", opts: ["How much will it cost?", "What is price taxi?", "Money how much?", "Cost me tell."], correct: 0, explain: "«How much will it cost?» — универсальный вопрос о цене. Работает везде." },
+      { q: "Что значит «Keep the change»?", opts: ["Дайте мне сдачу", "Сдачи не нужно", "У вас есть сдача?", "Сколько сдачи?"], correct: 1, explain: "«Keep the change» — буквально «оставьте сдачу себе». Это чаевые водителю." },
+      { q: "Как сказать водителю остановить машину?", opts: ["Stop here, please.", "Here stop now.", "I want stop.", "Please the stop."], correct: 0, explain: "«Stop here, please» — просто и понятно. Можно добавить жест рукой." },
+    ]
+  },
+  // МОДУЛЬ 3 — ОТЕЛЬ
+  {
+    id: 3,
+    title: "🏨 Заселение в отель",
+    meta: "Check-in в отеле — от стойки до номера",
+    module: "Модуль 3 • Урок 4",
+    hw: `"I have a reservation. My name is ___. Can I have a room on a higher floor?"`,
+    vocab: [
+      { en: "Reservation", ru: "Бронь", tr: "[резэвейшн]" },
+      { en: "Check-in / Check-out", ru: "Заезд / Выезд", tr: "[чек-ин / чек-аут]" },
+      { en: "Room key", ru: "Ключ от номера", tr: "[рум ки]" },
+      { en: "Floor", ru: "Этаж", tr: "[флоор]" },
+      { en: "Double room", ru: "Двухместный номер", tr: "[дабл рум]" },
+      { en: "Single room", ru: "Одноместный номер", tr: "[сингл рум]" },
+      { en: "Breakfast included", ru: "Завтрак включён", tr: "[брекфэст инклюдед]" },
+      { en: "Wi-Fi password", ru: "Пароль от Wi-Fi", tr: "[вайфай пасуорд]" },
+      { en: "Luggage", ru: "Багаж", tr: "[лагидж]" },
+      { en: "Wake-up call", ru: "Звонок для пробуждения", tr: "[вэйк-ап кол]" },
+    ],
+    phrases: [
+      ["I have a reservation.", "У меня есть бронь."],
+      ["My name is...", "Меня зовут..."],
+      ["Can I have a room on a higher floor?", "Можно номер на верхнем этаже?"],
+      ["What time is check-out?", "В какое время выезд?"],
+      ["Is breakfast included?", "Завтрак включён?"],
+      ["What's the Wi-Fi password?", "Какой пароль от Wi-Fi?"],
+    ],
+    dialogue: [
+      { side: "right", av: "🙋‍♀️", en: "Hi, I have a reservation. My name is Nastya.", ru: "Привет, у меня есть бронь. Меня зовут Настя." },
+      { side: "left", av: "🛎️", en: "Welcome! Let me find your booking... Yes, a double room for 3 nights.", ru: "Добро пожаловать! Сейчас найду бронь... Да, двухместный номер на 3 ночи." },
+      { side: "right", av: "🙋‍♀️", en: "Can I have a room on a higher floor?", ru: "Можно номер на верхнем этаже?" },
+      { side: "left", av: "🛎️", en: "Of course! Room 507 on the 5th floor. Is breakfast included? Yes, it is — from 7 to 10.", ru: "Конечно! Номер 507 на 5 этаже. Завтрак включён — с 7 до 10." },
+      { side: "right", av: "🙋‍♀️", en: "What's the Wi-Fi password?", ru: "Какой пароль от Wi-Fi?" },
+      { side: "left", av: "🛎️", en: "It's on your key card. Enjoy your stay!", ru: "Он на вашей карточке. Приятного отдыха!" },
+    ],
+    quiz: [
+      { q: "Как сказать что у тебя есть бронь?", opts: ["I have a reservation.", "I book hotel.", "My room is here.", "Reservation have I."], correct: 0, explain: "«I have a reservation» — стандартная фраза на ресепшене." },
+      { q: "Как спросить время выезда?", opts: ["What time is check-out?", "When I must go?", "Check-out time what?", "When leave hotel?"], correct: 0, explain: "«What time is check-out?» — важный вопрос, особенно если летишь вечером." },
+      { q: "Завтрак включён — как это будет по-английски?", opts: ["Breakfast included", "Morning food in", "Free breakfast have", "Eat morning yes"], correct: 0, explain: "«Breakfast included» — видишь это на сайте бронирования, означает что завтрак в цене номера." },
+    ]
+  },
+  {
+    id: 4,
+    title: "🛁 Просьбы в отеле",
+    meta: "Как попросить помощь и решить проблемы",
+    module: "Модуль 3 • Урок 5",
+    hw: `"Can I have some fresh towels, please? The air conditioning isn't working."`,
+    vocab: [
+      { en: "Towels", ru: "Полотенца", tr: "[тауэлз]" },
+      { en: "Air conditioning", ru: "Кондиционер", tr: "[эр кондишнинг]" },
+      { en: "Housekeeping", ru: "Уборка номера", tr: "[хаускипинг]" },
+      { en: "Noisy", ru: "Шумно", tr: "[нойзи]" },
+      { en: "Broken", ru: "Сломано", tr: "[броукэн]" },
+      { en: "Extra pillow", ru: "Дополнительная подушка", tr: "[экстра пилоу]" },
+      { en: "Room service", ru: "Еда в номер", tr: "[рум сёрвис]" },
+      { en: "Late check-out", ru: "Поздний выезд", tr: "[лейт чек-аут]" },
+      { en: "Iron", ru: "Утюг", tr: "[айрн]" },
+      { en: "Safe", ru: "Сейф", tr: "[сэйф]" },
+    ],
+    phrases: [
+      ["Can I have some fresh towels?", "Можно свежие полотенца?"],
+      ["The air conditioning isn't working.", "Кондиционер не работает."],
+      ["It's too noisy.", "Слишком шумно."],
+      ["Can you fix it?", "Вы можете это починить?"],
+      ["Can I have a late check-out?", "Можно поздний выезд?"],
+      ["I'd like to order room service.", "Я хотела бы заказать еду в номер."],
+    ],
+    dialogue: [
+      { side: "right", av: "🙋‍♀️", en: "Hello, this is room 507. The air conditioning isn't working.", ru: "Алло, это номер 507. Кондиционер не работает." },
+      { side: "left", av: "🛎️", en: "I'm sorry to hear that! We'll send someone right away.", ru: "Приносим извинения! Сейчас же пришлём мастера." },
+      { side: "right", av: "🙋‍♀️", en: "Also, can I have some fresh towels please? And an extra pillow?", ru: "Также, можно свежие полотенца? И дополнительную подушку?" },
+      { side: "left", av: "🛎️", en: "Of course! Anything else?", ru: "Конечно! Ещё что-нибудь?" },
+      { side: "right", av: "🙋‍♀️", en: "Can I have a late check-out tomorrow? Until 2pm?", ru: "Можно поздний выезд завтра? До 14:00?" },
+      { side: "left", av: "🛎️", en: "Let me check... Yes, 2pm is fine. No extra charge.", ru: "Дайте проверю... Да, 14:00 — без доплаты." },
+    ],
+    quiz: [
+      { q: "Как сказать что кондиционер не работает?", opts: ["The air conditioning isn't working.", "AC broken is.", "Cold machine no work.", "I want cold air."], correct: 0, explain: "«isn't working» = не работает. Формула: «The [что-то] isn't working» работает для любой техники." },
+      { q: "Как попросить свежие полотенца?", opts: ["Can I have some fresh towels?", "Give me towels.", "Towels please fresh.", "I need towel new."], correct: 0, explain: "«Can I have...» — снова наша формула просьбы. Очень универсальная!" },
+      { q: "Что такое «late check-out»?", opts: ["Ранний заезд", "Поздний выезд", "Ночной тариф", "Дополнительный день"], correct: 1, explain: "Late check-out — выезд позже стандартного времени (обычно после 12:00). Иногда бесплатно, иногда за доплату." },
+    ]
+  },
+  // МОДУЛЬ 4 — ЕДА
+  {
+    id: 5,
+    title: "☕ В кафе",
+    meta: "Как заказать кофе, еду и попросить счёт",
+    module: "Модуль 4 • Урок 6",
+    hw: `"Can I have a cappuccino and a croissant, please? Can I have the bill?"`,
+    vocab: [
+      { en: "Menu", ru: "Меню", tr: "[меню]" },
+      { en: "To go / Take away", ru: "С собой", tr: "[ту гоу / тейк эвэй]" },
+      { en: "For here", ru: "Здесь", tr: "[фо хиа]" },
+      { en: "The bill / Check", ru: "Счёт", tr: "[зэ бил / чек]" },
+      { en: "Tip", ru: "Чаевые", tr: "[тип]" },
+      { en: "Allergic to", ru: "Аллергия на", tr: "[эллёджик ту]" },
+      { en: "Dairy-free", ru: "Без молока", tr: "[дэйри фри]" },
+      { en: "Decaf", ru: "Без кофеина", tr: "[дикэф]" },
+      { en: "Refill", ru: "Долить ещё", tr: "[рифил]" },
+      { en: "Recommend", ru: "Рекомендовать", tr: "[рекомэнд]" },
+    ],
+    phrases: [
+      ["Can I see the menu?", "Можно меню?"],
+      ["I'll have a cappuccino.", "Я возьму капучино."],
+      ["For here, please.", "Здесь, пожалуйста."],
+      ["Can I have the bill?", "Можно счёт?"],
+      ["What do you recommend?", "Что посоветуете?"],
+      ["I'm allergic to nuts.", "У меня аллергия на орехи."],
+    ],
+    dialogue: [
+      { side: "left", av: "☕", en: "Hi! What can I get for you?", ru: "Привет! Что вам?" },
+      { side: "right", av: "🙋‍♀️", en: "Hi! Can I see the menu, please?", ru: "Привет! Можно меню?" },
+      { side: "left", av: "☕", en: "Here you go! Can I recommend our oat latte? It's very popular.", ru: "Пожалуйста! Могу порекомендовать овсяный латте — очень популярный." },
+      { side: "right", av: "🙋‍♀️", en: "Sounds good! I'll have an oat latte and a croissant. For here.", ru: "Звучит хорошо! Возьму овсяный латте и круассан. Здесь буду." },
+      { side: "left", av: "☕", en: "Any allergies?", ru: "Аллергии есть?" },
+      { side: "right", av: "🙋‍♀️", en: "No, I'm fine. Can I pay by card?", ru: "Нет, всё хорошо. Можно оплатить картой?" },
+      { side: "left", av: "☕", en: "Of course! That'll be 6.50.", ru: "Конечно! С вас 6.50." },
+      { side: "right", av: "🙋‍♀️", en: "Can I have the bill, please?", ru: "Можно счёт?" },
+    ],
+    quiz: [
+      { q: "Как попросить меню?", opts: ["Can I see the menu?", "Give menu me.", "I want see menu.", "Where is menu?"], correct: 0, explain: "«Can I see...» — вежливая просьба. Также можно «Could I have the menu?»" },
+      { q: "Как сказать что ты хочешь сидеть в кафе, не брать с собой?", opts: ["For here", "Stay here eat", "In cafe please", "Not take away"], correct: 0, explain: "«For here» vs «To go» — два варианта. «For here» = буду здесь, «to go» = с собой." },
+      { q: "Как попросить счёт?", opts: ["Can I have the bill?", "Money please give.", "Pay now I want.", "Check me please."], correct: 0, explain: "«Can I have the bill?» (UK) или «Check, please» (US) — оба варианта понимают везде." },
+    ]
+  },
+  {
+    id: 6,
+    title: "🍽️ В ресторане",
+    meta: "Заказ, прожарка стейка, особые пожелания",
+    module: "Модуль 4 • Урок 7",
+    hw: `"I'd like the pasta, please. Medium rare. Could you bring some water?"`,
+    vocab: [
+      { en: "Starter / Appetizer", ru: "Закуска", tr: "[стартэ / эппетайзэ]" },
+      { en: "Main course", ru: "Основное блюдо", tr: "[мэйн корс]" },
+      { en: "Dessert", ru: "Десерт", tr: "[дизёрт]" },
+      { en: "Rare / Medium / Well done", ru: "С кровью / Средняя / Хорошо прожаренный", tr: "[рэр / мидиэм / уэл дан]" },
+      { en: "Sparkling water", ru: "Газированная вода", tr: "[спарклинг уотэ]" },
+      { en: "Still water", ru: "Негазированная вода", tr: "[стил уотэ]" },
+      { en: "Vegetarian", ru: "Вегетарианское", tr: "[веджитэриэн]" },
+      { en: "On the side", ru: "Отдельно / На гарнир", tr: "[он зэ сайд]" },
+      { en: "Split the bill", ru: "Разделить счёт", tr: "[сплит зэ бил]" },
+      { en: "Service charge", ru: "Сервисный сбор", tr: "[сёрвис чардж]" },
+    ],
+    phrases: [
+      ["I'd like the pasta, please.", "Я возьму пасту, пожалуйста."],
+      ["Medium rare, please.", "Средняя прожарка, пожалуйста."],
+      ["Could you bring some water?", "Не могли бы принести воды?"],
+      ["Can we split the bill?", "Можно разделить счёт?"],
+      ["Is service charge included?", "Сервисный сбор включён?"],
+      ["Could you make it without onion?", "Можно без лука?"],
+    ],
+    dialogue: [
+      { side: "left", av: "🍽️", en: "Good evening! Are you ready to order?", ru: "Добрый вечер! Готовы заказывать?" },
+      { side: "right", av: "🙋‍♀️", en: "Yes! I'd like the salmon as a starter and the pasta as a main.", ru: "Да! Возьму лосось как закуску и пасту как основное." },
+      { side: "left", av: "🍽️", en: "Excellent choice. And how would you like your salmon — with cream sauce?", ru: "Отличный выбор. Лосось — со сливочным соусом?" },
+      { side: "right", av: "🙋‍♀️", en: "Yes, please. Could you bring still water too?", ru: "Да, пожалуйста. И принесите негазированной воды." },
+      { side: "left", av: "🍽️", en: "Of course. Anything else?", ru: "Конечно. Что-нибудь ещё?" },
+      { side: "right", av: "🙋‍♀️", en: "That's all for now. Can we split the bill later?", ru: "Пока всё. Потом можно разделить счёт?" },
+      { side: "left", av: "🍽️", en: "Of course, no problem!", ru: "Конечно, без проблем!" },
+    ],
+    quiz: [
+      { q: "Официант спрашивает «How would you like your steak?» — что он имеет в виду?", opts: ["Какой стейк вы хотите?", "Какую прожарку?", "Вам понравился стейк?", "Вы готовы заказать?"], correct: 1, explain: "«How would you like your steak?» — вопрос о прожарке. Ответы: rare, medium rare, medium, well done." },
+      { q: "Как попросить воду без газа?", opts: ["Still water, please.", "No bubble water.", "Quiet water please.", "Water no gas."], correct: 0, explain: "Still = без газа, Sparkling = с газом. Запомни пару — пригодится всегда." },
+      { q: "Как попросить разделить счёт?", opts: ["Can we split the bill?", "Half money please.", "Two bills make.", "Divide check us."], correct: 0, explain: "«Split the bill» — разделить счёт. «Go Dutch» — тоже «каждый платит за себя»." },
+    ]
+  },
+  // МОДУЛЬ 5 — ПОКУПКИ
+  {
+    id: 7,
+    title: "🛍️ В магазине",
+    meta: "Одежда, размеры, примерка, возврат",
+    module: "Модуль 5 • Урок 8",
+    hw: `"Do you have this in a medium? Can I try it on? I'd like to return this."`,
+    vocab: [
+      { en: "Size", ru: "Размер", tr: "[сайз]" },
+      { en: "Small / Medium / Large", ru: "S / M / L", tr: "[смол / мидиэм / ладж]" },
+      { en: "Fitting room", ru: "Примерочная", tr: "[фитинг рум]" },
+      { en: "Try on", ru: "Примерить", tr: "[трай он]" },
+      { en: "Too tight / Too loose", ru: "Слишком тесно / Слишком свободно", tr: "[ту тайт / ту люс]" },
+      { en: "Receipt", ru: "Чек", tr: "[рисит]" },
+      { en: "Refund", ru: "Возврат денег", tr: "[рифанд]" },
+      { en: "Exchange", ru: "Обмен", tr: "[иксчейндж]" },
+      { en: "Sale / Discount", ru: "Распродажа / Скидка", tr: "[сэйл / дискаунт]" },
+      { en: "Cash / Card", ru: "Наличные / Карта", tr: "[кэш / кард]" },
+    ],
+    phrases: [
+      ["Do you have this in a medium?", "Есть это в размере M?"],
+      ["Can I try it on?", "Можно примерить?"],
+      ["Where is the fitting room?", "Где примерочная?"],
+      ["It's too tight.", "Слишком тесно."],
+      ["I'd like to return this.", "Я хотела бы вернуть это."],
+      ["Do you have a discount?", "Есть скидка?"],
+    ],
+    dialogue: [
+      { side: "right", av: "🙋‍♀️", en: "Excuse me, do you have this dress in a medium?", ru: "Извините, это платье есть в размере M?" },
+      { side: "left", av: "🛍️", en: "Let me check... Yes, here you go!", ru: "Дайте проверю... Да, вот пожалуйста!" },
+      { side: "right", av: "🙋‍♀️", en: "Can I try it on? Where is the fitting room?", ru: "Можно примерить? Где примерочная?" },
+      { side: "left", av: "🛍️", en: "It's at the back on the right.", ru: "В конце зала справа." },
+      { side: "right", av: "🙋‍♀️", en: "Hmm, it's a bit too tight. Do you have a large?", ru: "Хм, немного тесновато. Есть большой?" },
+      { side: "left", av: "🛍️", en: "I'm sorry, that's the last one. Would you like to try a different style?", ru: "К сожалению, последний. Хотите попробовать другой фасон?" },
+      { side: "right", av: "🙋‍♀️", en: "I'll think about it. Is there a sale on?", ru: "Подумаю. Есть сейчас распродажа?" },
+      { side: "left", av: "🛍️", en: "Yes! 20% off all dresses this week.", ru: "Да! 20% скидка на все платья на этой неделе." },
+    ],
+    quiz: [
+      { q: "Как спросить есть ли одежда в твоём размере?", opts: ["Do you have this in a medium?", "Give size M please.", "My size is medium have?", "This in M exists?"], correct: 0, explain: "«Do you have this in a [size]?» — универсальный вопрос. Работает для любого размера." },
+      { q: "Что значит «It's too tight»?", opts: ["Слишком большое", "Слишком тесное", "Слишком длинное", "Слишком дорогое"], correct: 1, explain: "Tight = тесно, облегает. Loose = свободно, велико. Запомни пару." },
+      { q: "Как попросить вернуть товар?", opts: ["I'd like to return this.", "Take back this.", "Money back please.", "Return give me."], correct: 0, explain: "«I'd like to return this» — вежливо и правильно. Нужен чек (receipt)." },
+    ]
+  },
+  // МОДУЛЬ 6 — ЗДОРОВЬЕ
+  {
+    id: 8,
+    title: "💊 В аптеке",
+    meta: "Как объяснить симптомы и купить лекарство",
+    module: "Модуль 6 • Урок 9",
+    hw: `"I have a headache and a sore throat. Can you recommend something?"`,
+    vocab: [
+      { en: "Headache", ru: "Головная боль", tr: "[хедэйк]" },
+      { en: "Sore throat", ru: "Боль в горле", tr: "[соо сроут]" },
+      { en: "Fever", ru: "Температура/жар", tr: "[фивэ]" },
+      { en: "Stomach ache", ru: "Боль в животе", tr: "[стамэк эйк]" },
+      { en: "Painkiller", ru: "Обезболивающее", tr: "[пэйнкилэ]" },
+      { en: "Prescription", ru: "Рецепт", tr: "[прескрипшн]" },
+      { en: "Dosage", ru: "Дозировка", tr: "[досидж]" },
+      { en: "Side effects", ru: "Побочные эффекты", tr: "[сайд эффектс]" },
+      { en: "Allergic to", ru: "Аллергия на", tr: "[эллёджик ту]" },
+      { en: "Antibiotic", ru: "Антибиотик", tr: "[антибайотик]" },
+    ],
+    phrases: [
+      ["I have a headache.", "У меня болит голова."],
+      ["I have a sore throat.", "У меня болит горло."],
+      ["I have a fever.", "У меня температура."],
+      ["Can you recommend something?", "Можете что-нибудь порекомендовать?"],
+      ["I'm allergic to penicillin.", "У меня аллергия на пенициллин."],
+      ["How many times a day?", "Сколько раз в день?"],
+    ],
+    dialogue: [
+      { side: "right", av: "🙋‍♀️", en: "Hi, can you help me? I have a bad headache and a sore throat.", ru: "Привет, поможете? У меня сильно болит голова и горло." },
+      { side: "left", av: "💊", en: "Of course. Do you have a fever?", ru: "Конечно. Есть температура?" },
+      { side: "right", av: "🙋‍♀️", en: "I'm not sure. Maybe a little. I also feel very tired.", ru: "Не уверена. Может немного. Ещё очень устала." },
+      { side: "left", av: "💊", en: "Are you allergic to any medications?", ru: "Аллергия на лекарства есть?" },
+      { side: "right", av: "🙋‍♀️", en: "No allergies. Can you recommend something without a prescription?", ru: "Аллергий нет. Можете порекомендовать что-то без рецепта?" },
+      { side: "left", av: "💊", en: "Yes, I'd suggest this. Take one tablet three times a day with food.", ru: "Да, вот это. Принимайте по одной таблетке три раза в день с едой." },
+      { side: "right", av: "🙋‍♀️", en: "Any side effects?", ru: "Побочные эффекты есть?" },
+      { side: "left", av: "💊", en: "Might cause drowsiness. Feel better soon!", ru: "Может вызвать сонливость. Скорейшего выздоровления!" },
+    ],
+    quiz: [
+      { q: "Как сказать «У меня болит голова»?", opts: ["I have a headache.", "My head is pain.", "Head hurts me.", "I pain head have."], correct: 0, explain: "«I have a + [болезнь]» — универсальная формула. I have a headache, a cold, a fever." },
+      { q: "Фармацевт спрашивает «Are you allergic to any medications?» — что он хочет знать?", opts: ["Есть ли у вас рецепт?", "Есть ли аллергия на лекарства?", "Вы уже принимаете что-то?", "Нужна ли вам помощь?"], correct: 1, explain: "Allergic to = аллергия на. Важный вопрос — отвечай честно, это безопасность." },
+      { q: "«Take one tablet three times a day» — сколько таблеток в день?", opts: ["1", "2", "3", "4"], correct: 2, explain: "Three times a day = три раза в день. One tablet each time = 3 таблетки всего за день." },
+    ]
+  },
+  // МОДУЛЬ 7 — ОБЩЕНИЕ
+  {
+    id: 9,
+    title: "💬 Small talk",
+    meta: "Лёгкий разговор с незнакомым человеком",
+    module: "Модуль 7 • Урок 10",
+    hw: `"Where are you from? What do you do? I'm a... I love travelling!"`,
+    vocab: [
+      { en: "Where are you from?", ru: "Откуда вы?", tr: "[уэр а ю фром]" },
+      { en: "What do you do?", ru: "Кем вы работаете?", tr: "[уот ду ю ду]" },
+      { en: "I'm a...", ru: "Я работаю...", tr: "[айм э]" },
+      { en: "How long are you here?", ru: "Как долго вы здесь?", tr: "[хау лонг а ю хиа]" },
+      { en: "First time here?", ru: "Впервые здесь?", tr: "[фёрст тайм хиа]" },
+      { en: "I love it here!", ru: "Мне здесь очень нравится!", tr: "[ай лав ит хиа]" },
+      { en: "The weather is nice.", ru: "Погода хорошая.", tr: "[зэ уэзэ из найс]" },
+      { en: "What do you recommend?", ru: "Что посоветуете?", tr: "[уот ду ю рекомэнд]" },
+      { en: "I'm travelling alone.", ru: "Я путешествую одна.", tr: "[айм трэвэлинг элоун]" },
+      { en: "Nice talking to you!", ru: "Приятно было поговорить!", tr: "[найс токинг ту ю]" },
+    ],
+    phrases: [
+      ["Where are you from?", "Откуда вы?"],
+      ["I'm from Russia.", "Я из России."],
+      ["First time here?", "Впервые здесь?"],
+      ["What do you recommend?", "Что посоветуете?"],
+      ["I love it here!", "Мне здесь очень нравится!"],
+      ["Nice talking to you!", "Приятно было поговорить!"],
+    ],
+    dialogue: [
+      { side: "left", av: "🧑", en: "Hi! Are you also waiting for the tour?", ru: "Привет! Вы тоже ждёте экскурсию?" },
+      { side: "right", av: "🙋‍♀️", en: "Yes! Is this your first time here?", ru: "Да! Вы впервые здесь?" },
+      { side: "left", av: "🧑", en: "No, second time! I love it here. Where are you from?", ru: "Нет, второй раз! Мне здесь очень нравится. Откуда вы?" },
+      { side: "right", av: "🙋‍♀️", en: "I'm from Russia. You?", ru: "Я из России. А вы?" },
+      { side: "left", av: "🧑", en: "From Australia! How long are you here?", ru: "Из Австралии! Как долго вы здесь?" },
+      { side: "right", av: "🙋‍♀️", en: "Just 5 days. What do you recommend to see?", ru: "Всего 5 дней. Что посоветуете посмотреть?" },
+      { side: "left", av: "🧑", en: "Definitely the old town and the sunset viewpoint!", ru: "Обязательно старый город и смотровую площадку на закат!" },
+      { side: "right", av: "🙋‍♀️", en: "Great, thanks! Nice talking to you!", ru: "Отлично, спасибо! Приятно было поговорить!" },
+    ],
+    quiz: [
+      { q: "Как спросить откуда человек?", opts: ["Where are you from?", "You from where?", "What is your country?", "Your homeland?"], correct: 0, explain: "«Where are you from?» — самый частый вопрос в путешествиях. Ответ: «I'm from Russia.»" },
+      { q: "Что значит «First time here?»", opts: ["Ты впервые здесь?", "В первый раз в стране?", "Это хорошее место?", "Тебе нравится?"], correct: 0, explain: "Короткий вопрос для small talk. Ответ: «Yes, first time!» или «No, I've been here before.»" },
+      { q: "Как закончить разговор вежливо?", opts: ["Nice talking to you!", "Bye now.", "I must go.", "Stop talking."], correct: 0, explain: "«Nice talking to you!» — тёплое прощание. Можно добавить «Have a great trip!»" },
+    ]
+  },
+  // МОДУЛЬ 8 — ПУТЕШЕСТВИЯ
+  {
+    id: 10,
+    title: "✈️ На экскурсии",
+    meta: "Турагент, гид, транспорт, маршрут",
+    module: "Модуль 8 • Урок 11",
+    hw: `"How do I get to...? Can you recommend a tour? What time does it start?"`,
+    vocab: [
+      { en: "How do I get to...?", ru: "Как добраться до...?", tr: "[хау ду ай гет ту]" },
+      { en: "Is it far from here?", ru: "Это далеко отсюда?", tr: "[из ит фа фром хиа]" },
+      { en: "Can I book a tour?", ru: "Могу ли я забронировать тур?", tr: "[кэн ай бук э тур]" },
+      { en: "What time does it start?", ru: "Во сколько начало?", tr: "[уот тайм даз ит старт]" },
+      { en: "Is lunch included?", ru: "Обед включён?", tr: "[из ланч инклюдид]" },
+      { en: "How long is the tour?", ru: "Сколько длится тур?", tr: "[хау лонг из зэ тур]" },
+      { en: "Can we stop here?", ru: "Можем остановиться здесь?", tr: "[кэн уи стоп хиа]" },
+      { en: "Is there a guide in English?", ru: "Есть ли гид на английском?", tr: "[из зэа э гайд ин инглиш]" },
+      { en: "I'd like a window seat.", ru: "Я хочу место у окна.", tr: "[айд лайк э уиндоу сит]" },
+      { en: "What's the next stop?", ru: "Какая следующая остановка?", tr: "[уотс зэ некст стоп]" },
+    ],
+    phrases: [
+      ["How do I get to the beach?", "Как добраться до пляжа?"],
+      ["Can I book a tour for tomorrow?", "Могу забронировать тур на завтра?"],
+      ["Is lunch included?", "Обед включён?"],
+      ["How long is the tour?", "Сколько длится тур?"],
+      ["Is there a guide in English?", "Есть гид на английском?"],
+      ["What's the next stop?", "Какая следующая остановка?"],
+    ],
+    dialogue: [
+      { side: "right", av: "🙋‍♀️", en: "Hi! Can I book a tour to the marble mountains?", ru: "Привет! Могу забронировать тур к Мраморным горам?" },
+      { side: "left", av: "🧑‍💼", en: "Of course! We have morning and afternoon trips.", ru: "Конечно! У нас есть утренние и дневные поездки." },
+      { side: "right", av: "🙋‍♀️", en: "What time does the morning one start?", ru: "Во сколько начинается утренняя?" },
+      { side: "left", av: "🧑‍💼", en: "At 8am. It's 4 hours, lunch included.", ru: "В 8 утра. 4 часа, обед включён." },
+      { side: "right", av: "🙋‍♀️", en: "Is there a guide in English?", ru: "Есть гид на английском?" },
+      { side: "left", av: "🧑‍💼", en: "Yes! Our guide Sarah speaks English perfectly.", ru: "Да! Наш гид Сара отлично говорит по-английски." },
+      { side: "right", av: "🙋‍♀️", en: "Great. Can we stop for photos on the way?", ru: "Отлично. Можно остановиться для фото по дороге?" },
+      { side: "left", av: "🧑‍💼", en: "Of course, there are 3 photo stops!", ru: "Конечно, будет 3 фотостоянки!" },
+    ],
+    quiz: [
+      { q: "Как спросить сколько длится тур?", opts: ["How long is the tour?", "When does tour end?", "Tour time?", "How many hours tour?"], correct: 0, explain: "«How long is...?» — стандартный вопрос о продолжительности. Применимо к туру, фильму, поездке." },
+      { q: "Что значит «Is lunch included?»", opts: ["Обед включён?", "Можно пообедать?", "Где обед?", "Сколько стоит обед?"], correct: 0, explain: "«Included» = включён в цену. Важный вопрос при бронировании любых туров и пакетов." },
+      { q: "Как попросить гида остановиться для фото?", opts: ["Can we stop here?", "Stop please!", "Photo stop now.", "Let's pause here."], correct: 0, explain: "«Can we...?» — вежливая просьба. Всегда мягче, чем просто команда." },
+    ]
+  },
+  // МОДУЛЬ 9 — РЕСТОРАНЫ (ПРОДВИНУТЫЙ)
+  {
+    id: 11,
+    title: "🍷 Сложный ресторан",
+    meta: "Бронь, особые пожелания, жалобы, счёт",
+    module: "Модуль 9 • Урок 12",
+    hw: `"I have a reservation. Could I have it without...? The bill, please."`,
+    vocab: [
+      { en: "I have a reservation.", ru: "У меня есть бронь.", tr: "[ай хэв э резэвэйшн]" },
+      { en: "Could we have a table by the window?", ru: "Можно столик у окна?", tr: "[куд уи хэв э тэйбл бай зэ уиндоу]" },
+      { en: "I'm allergic to...", ru: "У меня аллергия на...", tr: "[айм элёрджик ту]" },
+      { en: "Could I have it without...?", ru: "Можно без...?", tr: "[куд ай хэв ит уизаут]" },
+      { en: "It's overcooked.", ru: "Это пережарено.", tr: "[итс оувэкукт]" },
+      { en: "This is not what I ordered.", ru: "Это не то, что я заказала.", tr: "[зис из нот уот ай ордэд]" },
+      { en: "Could you bring the bill, please?", ru: "Принесите счёт, пожалуйста.", tr: "[куд ю бринг зэ бил плиз]" },
+      { en: "Is service included?", ru: "Обслуживание включено?", tr: "[из сёвис инклюдид]" },
+      { en: "Can we split the bill?", ru: "Можно разделить счёт?", tr: "[кэн уи сплит зэ бил]" },
+      { en: "It was delicious, thank you!", ru: "Было очень вкусно, спасибо!", tr: "[ит уоз делишэс зэнк ю]" },
+    ],
+    phrases: [
+      ["I have a reservation for two.", "У меня бронь на двоих."],
+      ["I'm allergic to nuts.", "У меня аллергия на орехи."],
+      ["Could I have it without onion?", "Можно без лука?"],
+      ["This is not what I ordered.", "Это не то, что я заказала."],
+      ["Could you bring the bill, please?", "Принесите счёт, пожалуйста."],
+      ["Can we split the bill?", "Можно разделить счёт?"],
+    ],
+    dialogue: [
+      { side: "right", av: "🙋‍♀️", en: "Hi, I have a reservation. The name is Nastya.", ru: "Привет, у меня есть бронь. Имя — Настя." },
+      { side: "left", av: "🧑‍🍳", en: "Welcome! Right this way. Here's your table.", ru: "Добро пожаловать! Пройдёмте. Вот ваш столик." },
+      { side: "right", av: "🙋‍♀️", en: "Thank you. I'd like the pasta, but could I have it without mushrooms? I'm allergic.", ru: "Спасибо. Я возьму пасту, но можно без грибов? У меня аллергия." },
+      { side: "left", av: "🧑‍🍳", en: "Of course, no problem at all!", ru: "Конечно, без проблем!" },
+      { side: "right", av: "🙋‍♀️", en: "Excuse me — this is not what I ordered. I asked for pasta.", ru: "Извините — это не то, что я заказала. Я просила пасту." },
+      { side: "left", av: "🧑‍🍳", en: "I'm so sorry! I'll fix it right away.", ru: "Очень извините! Сейчас исправим." },
+      { side: "right", av: "🙋‍♀️", en: "No worries. Could you bring the bill when ready? Can we split it?", ru: "Ничего страшного. Принесите счёт когда будете готовы? Можем разделить?" },
+      { side: "left", av: "🧑‍🍳", en: "Of course! It was a pleasure having you.", ru: "Конечно! Рады были вас обслужить." },
+    ],
+    quiz: [
+      { q: "Как сказать что у тебя аллергия на арахис?", opts: ["I'm allergic to peanuts.", "I don't like peanuts.", "No peanuts please.", "Peanuts are bad."], correct: 0, explain: "«I'm allergic to...» — важная фраза! Официанты воспринимают её серьёзно. Не стесняйся использовать." },
+      { q: "Что означает «Can we split the bill?»", opts: ["Можно разделить счёт?", "Это дорого?", "Кто платит?", "Дайте скидку?"], correct: 0, explain: "«Split the bill» = разделить счёт между несколькими людьми. Частая фраза в путешествиях с друзьями." },
+      { q: "Как вежливо сообщить что вам принесли не то блюдо?", opts: ["This is not what I ordered.", "This is wrong!", "I ordered something else.", "Bad order."], correct: 0, explain: "«This is not what I ordered» — вежливо и чётко. Без агрессии, но ясно." },
+    ]
+  },
+  // МОДУЛЬ 10 — МАГАЗИНЫ (ПРОДВИНУТЫЙ)
+  {
+    id: 12,
+    title: "🛒 Рынок и торг",
+    meta: "Рынок, торг, возврат, онлайн-покупка",
+    module: "Модуль 10 • Урок 13",
+    hw: `"Can you do a better price? I'd like to return this. Do you have it in another colour?"`,
+    vocab: [
+      { en: "Can you do a better price?", ru: "Можно скидку?", tr: "[кэн ю ду э бэтэ прайс]" },
+      { en: "That's too expensive.", ru: "Это слишком дорого.", tr: "[зэтс ту иксппэнсив]" },
+      { en: "I'll take it.", ru: "Беру.", tr: "[айл тэйк ит]" },
+      { en: "Do you have it in another colour?", ru: "Есть в другом цвете?", tr: "[ду ю хэв ит ин энэзэ калэ]" },
+      { en: "What size is this?", ru: "Какой это размер?", tr: "[уот сайз из зис]" },
+      { en: "Can I try it on?", ru: "Можно примерить?", tr: "[кэн ай трай ит он]" },
+      { en: "I'd like to return this.", ru: "Я хочу вернуть это.", tr: "[айд лайк ту ритёрн зис]" },
+      { en: "It doesn't fit.", ru: "Не подходит.", tr: "[ит дазнт фит]" },
+      { en: "Do you accept card?", ru: "Принимаете карту?", tr: "[ду ю эксэпт кад]" },
+      { en: "Can I get a receipt?", ru: "Можно чек?", tr: "[кэн ай гет э рисит]" },
+    ],
+    phrases: [
+      ["Can you do a better price?", "Можно скидку?"],
+      ["That's too expensive for me.", "Это для меня слишком дорого."],
+      ["Do you have it in a smaller size?", "Есть в меньшем размере?"],
+      ["Can I try it on?", "Можно примерить?"],
+      ["I'd like to return this, please.", "Я хочу вернуть это, пожалуйста."],
+      ["Do you accept card?", "Принимаете карту?"],
+    ],
+    dialogue: [
+      { side: "right", av: "🙋‍♀️", en: "Hi! How much is this dress?", ru: "Привет! Сколько стоит это платье?" },
+      { side: "left", av: "🧑‍💼", en: "It's 350,000 dong.", ru: "350 000 донгов." },
+      { side: "right", av: "🙋‍♀️", en: "That's a bit expensive. Can you do a better price?", ru: "Это немного дорого. Можно скидку?" },
+      { side: "left", av: "🧑‍💼", en: "For you, 300,000. Special price!", ru: "Для вас 300 000. Специальная цена!" },
+      { side: "right", av: "🙋‍♀️", en: "Do you have it in another colour? I like blue.", ru: "Есть в другом цвете? Мне нравится синий." },
+      { side: "left", av: "🧑‍💼", en: "Yes, blue and green! What size are you?", ru: "Да, синий и зелёный! Какой у вас размер?" },
+      { side: "right", av: "🙋‍♀️", en: "I'm usually a small. Can I try it on?", ru: "Обычно маленький. Можно примерить?" },
+      { side: "left", av: "🧑‍💼", en: "Of course! The fitting room is over there.", ru: "Конечно! Примерочная вон там." },
+    ],
+    quiz: [
+      { q: "Как попросить скидку на рынке?", opts: ["Can you do a better price?", "Give me discount!", "Make it cheaper.", "Lower the price."], correct: 0, explain: "«Can you do a better price?» — вежливая форма торга. На рынках Азии это абсолютно нормально и ожидаемо!" },
+      { q: "Что сказать чтобы вернуть товар?", opts: ["I'd like to return this.", "Take it back.", "Refund me.", "I don't want it."], correct: 0, explain: "«I'd like to return this» — стандартная вежливая фраза для возврата в любом магазине." },
+      { q: "Как спросить есть ли другой цвет?", opts: ["Do you have it in another colour?", "Give me different colour.", "Other colours?", "Change the colour."], correct: 0, explain: "«Do you have it in...?» — универсальная конструкция. Работает с цветом, размером, фасоном." },
+    ]
+  },
+  // МОДУЛЬ 11 — ЗНАКОМСТВА И ОБЩЕНИЕ
+  {
+    id: 13,
+    title: "🤝 Глубокий разговор",
+    meta: "Дружба, интересы, планы, комплименты",
+    module: "Модуль 11 • Урок 14",
+    hw: `"What do you enjoy doing? That's so interesting! We should hang out sometime."`,
+    vocab: [
+      { en: "What do you enjoy doing?", ru: "Чем вы любите заниматься?", tr: "[уот ду ю инджой дуинг]" },
+      { en: "That's so interesting!", ru: "Это так интересно!", tr: "[зэтс соу интристинг]" },
+      { en: "I feel the same way.", ru: "Я чувствую то же самое.", tr: "[ай фил зэ сэйм уэй]" },
+      { en: "We should hang out sometime.", ru: "Нам надо встретиться как-нибудь.", tr: "[уи шуд хэнг аут самтайм]" },
+      { en: "What are your plans for tonight?", ru: "Какие у вас планы на вечер?", tr: "[уот а ё плэнз фо тунайт]" },
+      { en: "You seem really cool!", ru: "Ты кажешься очень классным!", tr: "[ю сим риэли кул]" },
+      { en: "I'd love to hear more about that.", ru: "Хотела бы узнать об этом больше.", tr: "[айд лав ту хиа мо эбаут зэт]" },
+      { en: "Let's keep in touch!", ru: "Давайте будем на связи!", tr: "[летс кип ин тач]" },
+      { en: "Can I add you on Instagram?", ru: "Могу добавить вас в Инстаграм?", tr: "[кэн ай эд ю он инстэгрэм]" },
+      { en: "It was so nice meeting you!", ru: "Было так приятно познакомиться!", tr: "[ит уоз соу найс митинг ю]" },
+    ],
+    phrases: [
+      ["What do you enjoy doing in your free time?", "Чем любишь заниматься в свободное время?"],
+      ["That's so interesting, tell me more!", "Это так интересно, расскажи больше!"],
+      ["I feel the same way!", "Я чувствую то же самое!"],
+      ["We should hang out sometime!", "Нам надо встретиться как-нибудь!"],
+      ["Let's keep in touch!", "Давайте будем на связи!"],
+      ["It was so nice meeting you!", "Было так приятно познакомиться!"],
+    ],
+    dialogue: [
+      { side: "left", av: "🧑", en: "So, what do you enjoy doing when you're not working?", ru: "Итак, чем ты любишь заниматься когда не работаешь?" },
+      { side: "right", av: "🙋‍♀️", en: "I love travelling, trying new food, and learning languages!", ru: "Обожаю путешествовать, пробовать новую еду и учить языки!" },
+      { side: "left", av: "🧑", en: "That's so interesting! I feel the same way about travelling.", ru: "Это так интересно! Я чувствую то же самое насчёт путешествий." },
+      { side: "right", av: "🙋‍♀️", en: "Really? Where's the best place you've been?", ru: "Правда? Какое лучшее место где ты был?" },
+      { side: "left", av: "🧑", en: "Probably Japan. You seem really adventurous too!", ru: "Наверное Япония. Ты тоже кажешься очень авантюрной!" },
+      { side: "right", av: "🙋‍♀️", en: "Ha, I try! What are your plans for tonight?", ru: "Ха, стараюсь! Какие у тебя планы на вечер?" },
+      { side: "left", av: "🧑", en: "Nothing yet. We should hang out! Can I add you on Instagram?", ru: "Пока ничего. Нам надо встретиться! Могу добавить тебя в Инстаграм?" },
+      { side: "right", av: "🙋‍♀️", en: "Of course! It was so nice meeting you!", ru: "Конечно! Было так приятно познакомиться!" },
+    ],
+    quiz: [
+      { q: "Как предложить встретиться ещё раз?", opts: ["We should hang out sometime!", "Meet me later.", "Let's go somewhere.", "Come with me."], correct: 0, explain: "«Hang out» = неформально провести время вместе. Очень распространённая фраза среди молодёжи." },
+      { q: "Что значит «Let's keep in touch»?", opts: ["Давайте будем на связи", "Давайте дружить", "Пишите мне", "Позвоните мне"], correct: 0, explain: "«Keep in touch» — остаться на связи. Говорится при прощании когда хочешь сохранить контакт." },
+      { q: "Как сделать собеседнику комплимент?", opts: ["You seem really cool!", "You are good.", "I like you.", "Nice person."], correct: 0, explain: "«You seem...» = «ты кажешься...» — мягкий комплимент. Звучит естественно и не слишком напористо." },
+    ]
+  }
+];
+
+let currentLesson = 0;
+
+function getLessonSteps(lesson) {
+  return [
+    {
+      title: "Разминка",
+      render: () => `
+        <div class="card">
+          <div class="card-title">🔥 Разминка</div>
+          <p style="font-size:14px;line-height:1.7;margin-bottom:14px">
+            ${lesson.id === 0
+              ? 'Ты уже на уровне A2, поэтому пропускаем «Hello, my name is» и сразу переходим к реальным ситуациям.<br><br>'
+              : `Урок ${lesson.id + 1} из модуля "Аэропорт".<br><br>`}
+            <strong>Тема:</strong> ${lesson.meta}
+          </p>
+          <button class="btn btn-primary" onclick="goStep(1)">Начать → Слова</button>
+        </div>
+      `
+    },
+    {
+      title: "Слова",
+      render: () => `
+        <div class="card">
+          <div class="card-title">📖 Слова — нажми чтобы увидеть перевод</div>
+          <div class="vocab-grid">
+            ${lesson.vocab.map(w => `
+              <div class="vocab-card" onclick="this.classList.toggle('flipped')">
+                <div class="vocab-en">${w.en}</div>
+                <div class="vocab-tr">${w.tr}</div>
+                <div class="vocab-ru">${w.ru}</div>
+              </div>
+            `).join('')}
+          </div>
+          <button class="btn btn-primary" onclick="goStep(2)" style="margin-top:14px">Дальше → Фразы</button>
+        </div>
+      `
+    },
+    {
+      title: "Фразы",
+      render: () => `
+        <div class="card">
+          <div class="card-title">✏️ Ключевые фразы</div>
+          <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">
+            ${lesson.phrases.map(([en, ru]) => `
+              <div style="background:var(--surface2);border-radius:10px;padding:11px 13px">
+                <div style="font-size:14px;font-weight:700;margin-bottom:3px">${en}</div>
+                <div style="font-size:12px;color:var(--muted)">${ru}</div>
+              </div>
+            `).join('')}
+          </div>
+          <button class="btn btn-primary" onclick="goStep(3)">Дальше → Диалог</button>
+        </div>
+      `
+    },
+    {
+      title: "Диалог",
+      render: () => `
+        <div class="card">
+          <div class="card-title">💬 Сцена: ${lesson.title}</div>
+          <div class="dialogue" style="margin-bottom:16px">
+            ${lesson.dialogue.map(m => `
+              <div class="msg ${m.side}">
+                <div class="msg-av">${m.av}</div>
+                <div>
+                  <div class="msg-bubble">${m.en}</div>
+                  <div class="msg-tr">${m.ru}</div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+          <p style="font-size:12px;color:var(--muted);margin-bottom:12px">Прочитай вслух реплики 🙋‍♀️</p>
+          <button class="btn btn-primary" onclick="goStep(4)">Дальше → Тест</button>
+        </div>
+      `
+    },
+    {
+      title: "Тест",
+      render: () => `<div id="quiz-wrap"></div>
+        <div class="hw-box" style="margin-top:12px">
+          <div class="hw-title">📝 Задание на сегодня</div>
+          <div class="hw-text">Произнеси вслух 3 раза:<br><br>
+            <strong>${lesson.hw}</strong>
+          </div>
+        </div>
+      `,
+      afterRender: () => renderQuiz(lesson.quiz)
+    }
+  ];
+}
+
+let steps = getLessonSteps(lessons[0]);
+
+let currentStep = 0, quizIdx = 0, quizScore = 0;
+
+// ===================== STORAGE =====================
+// localStorage работает отдельно для каждого пользователя в Telegram
+
+function saveData(key, value) {
+  try { localStorage.setItem('eg_' + key, JSON.stringify(value)); } catch(e) {}
+}
+
+function loadData(key, cb) {
+  try {
+    const val = localStorage.getItem('eg_' + key);
+    cb(val ? JSON.parse(val) : null);
+  } catch(e) { cb(null); }
+}
+
+// Прогресс: { streak, lastDate, lessonsCompleted, wordsLearned, currentStep }
+let userProgress = { streak: 0, lastDate: null, lessonsCompleted: 0, wordsLearned: 0, currentStep: 0 };
+
+function initProgress() {
+  loadData('progress', (data) => {
+    if (data) {
+      userProgress = data;
+      const today = new Date().toDateString();
+      const yesterday = new Date(Date.now() - 86400000).toDateString();
+      if (data.lastDate === yesterday) {
+        userProgress.streak = (userProgress.streak || 0) + 1;
+        userProgress.lastDate = today;
+        saveData('progress', userProgress);
+      } else if (data.lastDate !== today) {
+        userProgress.streak = 1;
+        userProgress.lastDate = today;
+        saveData('progress', userProgress);
+      }
+    } else {
+      userProgress = { streak: 1, lastDate: new Date().toDateString(), lessonsCompleted: 0, wordsLearned: 0, currentLesson: 0, currentStep: 0 };
+      saveData('progress', userProgress);
+    }
+    // Восстанавливаем урок
+    currentLesson = userProgress.currentLesson || 0;
+    steps = getLessonSteps(lessons[currentLesson]);
+    updateLessonHeader();
+    document.getElementById('streakNum').textContent = userProgress.streak || 1;
+    goStep(userProgress.currentStep || 0);
+  });
+}
+
+function markLessonComplete() {
+  userProgress.lessonsCompleted += 1;
+  const lessonVocab = lessons[currentLesson].vocab || [];
+  userProgress.wordsLearned += lessonVocab.length;
+  userProgress.currentStep = 0;
+  saveData('progress', userProgress);
+  // Сохраняем слова из этого урока в общий словарь
+  loadData('allWords', (existing) => {
+    const all = existing || [];
+    lessonVocab.forEach(w => {
+      if (!all.find(x => x.en === w.en)) all.push(w);
+    });
+    saveData('allWords', all);
+  });
+  showToast('Прогресс сохранён ✓');
+}
+
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.textContent = msg;
+  t.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#4cff91;color:#000;padding:8px 16px;border-radius:20px;font-size:13px;font-weight:700;z-index:9999;opacity:0;transition:opacity 0.3s';
+  document.body.appendChild(t);
+  setTimeout(() => t.style.opacity = '1', 10);
+  setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 2500);
+}
+
+// ===================== NAVIGATION =====================
+
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  const pages = ['today','modules','vocab','stats'];
+  const idx = pages.indexOf(name);
+  document.querySelectorAll('.nav-btn')[idx]?.classList.add('active');
+  if (name === 'vocab') renderVocabPage();
+  if (name === 'stats') renderStats();
+}
+
+function goStep(n) {
+  currentStep = n;
+  userProgress.currentStep = n;
+  saveData('progress', userProgress);
+  const dots = document.querySelectorAll('.step-dot');
+  dots.forEach((d, i) => {
+    d.classList.remove('done','active','pending');
+    if (i < n) d.classList.add('done');
+    else if (i === n) d.classList.add('active');
+    else d.classList.add('pending');
+  });
+  const s = steps[n];
+  document.getElementById('step-content').innerHTML = s.render();
+  if (s.afterRender) s.afterRender();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function renderStats() {
+  document.getElementById('statDays').textContent = userProgress.streak || 1;
+  document.getElementById('statWords').textContent = userProgress.wordsLearned || 0;
+  document.getElementById('statLessons').textContent = userProgress.lessonsCompleted || 0;
+}
+
+function renderVocabPage() {
+  loadData('allWords', (all) => {
+    const words = all && all.length > 0 ? all : (lessons[0].vocab || []);
+    document.getElementById('vocabGrid').innerHTML = words.length === 0
+      ? '<p style="color:var(--muted);grid-column:span 2">Пройди первый урок — слова появятся здесь</p>'
+      : words.map(w => `
+          <div class="vocab-card" onclick="this.classList.toggle('flipped')">
+            <div class="vocab-en">${w.en}</div>
+            <div class="vocab-tr">${w.tr}</div>
+            <div class="vocab-ru">${w.ru}</div>
+          </div>
+        `).join('');
+  });
+}
+
+let activeQuiz = [];
+
+function renderQuiz(quizData) {
+  if (quizData) activeQuiz = quizData;
+  quizIdx = 0; quizScore = 0;
+  showQ();
+}
+
+function showQ() {
+  const wrap = document.getElementById('quiz-wrap');
+  if (!wrap) return;
+  if (quizIdx >= activeQuiz.length) {
+    const perfect = quizScore === activeQuiz.length;
+    if (perfect) markLessonComplete();
+    const hasNext = currentLesson < lessons.length - 1;
+    wrap.innerHTML = `
+      <div class="card" style="text-align:center">
+        <div style="font-size:40px;margin-bottom:12px">${perfect ? '🎉' : '💪'}</div>
+        <div style="font-size:18px;font-weight:800;margin-bottom:6px">${quizScore} из ${activeQuiz.length}</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:16px">${perfect ? 'Урок завершён! Прогресс сохранён ✓' : 'Повтори слова и попробуй снова.'}</div>
+        ${perfect && hasNext ? `<button class="btn btn-primary" onclick="goLesson(${currentLesson + 1})" style="margin-bottom:8px">Следующий урок →</button>` : ''}
+        <button class="btn" style="background:var(--surface2);color:var(--text);width:100%;justify-content:center;margin-top:4px" onclick="renderQuiz()">Пройти тест снова</button>
+      </div>
+    `;
+    return;
+  }
+  const q = activeQuiz[quizIdx];
+  wrap.innerHTML = `
+    <div class="card">
+      <div class="card-title">Вопрос ${quizIdx + 1} из ${activeQuiz.length}</div>
+      <div class="ex-q">${q.q}</div>
+      <div class="ex-opts">
+        ${q.opts.map((o, i) => `<button class="ex-opt" onclick="ansQ(${i})">${o}</button>`).join('')}
+      </div>
+      <div class="ex-fb" id="qfb"></div>
+    </div>
+  `;
+}
+
+function ansQ(i) {
+  const q = activeQuiz[quizIdx];
+  document.querySelectorAll('.ex-opt').forEach(o => o.classList.add('disabled'));
+  document.querySelectorAll('.ex-opt')[i].classList.add(i === q.correct ? 'correct' : 'wrong');
+  if (i !== q.correct) document.querySelectorAll('.ex-opt')[q.correct].classList.add('correct');
+  const fb = document.getElementById('qfb');
+  fb.className = 'ex-fb show ' + (i === q.correct ? 'ok' : 'bad');
+  fb.textContent = (i === q.correct ? '' : `Правильно: «${q.opts[q.correct]}». `) + q.explain;
+  if (i === q.correct) quizScore++;
+  setTimeout(() => { quizIdx++; showQ(); }, 2000);
+}
+
+function goLesson(idx) {
+  currentLesson = idx;
+  userProgress.currentLesson = idx;
+  userProgress.currentStep = 0;
+  saveData('progress', userProgress);
+  steps = getLessonSteps(lessons[idx]);
+  updateLessonHeader();
+  goStep(0);
+  showPage('today');
+}
+
+function updateLessonHeader() {
+  const l = lessons[currentLesson];
+  const el = document.getElementById('lessonHeader');
+  if (el) el.innerHTML = `
+    <div class="lesson-tag">${l.module}</div>
+    <div class="lesson-title">${l.title}</div>
+    <div class="lesson-meta">${l.meta}</div>
+  `;
+}
+
+renderVocabPage();
+initProgress();
+</script>
+</body>
+</html>
